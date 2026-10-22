@@ -142,18 +142,23 @@
 
     <hr class="divider" />
 
-    <form id="rsvp-form">
+    <form id="rsvp-form" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+      <!-- Formspree hidden fields -->
+      <input type="hidden" name="_replyto" id="hidden-email" />
+      <input type="hidden" name="_subject" id="hidden-subject" />
+      <input type="hidden" name="_next" value="about:blank" />
+
       <div>
         <label for="name">Full Name</label>
-        <input id="name" type="text" placeholder="Jane Smith" required />
+        <input id="name" name="Full Name" type="text" placeholder="Jane Smith" required />
       </div>
       <div>
         <label for="email">Email Address</label>
-        <input id="email" type="email" placeholder="jane@example.com" required />
+        <input id="email" name="Email Address" type="email" placeholder="jane@example.com" required />
       </div>
       <div>
         <label for="guests">Number of Guests (including you)</label>
-        <select id="guests">
+        <select id="guests" name="Number of Guests">
           <option value="1">1 – Just me</option>
           <option value="2">2</option>
           <option value="3">3</option>
@@ -163,7 +168,7 @@
       </div>
       <div>
         <label for="dietary">Dietary Requirements (optional)</label>
-        <input id="dietary" type="text" placeholder="e.g. vegetarian, gluten-free" />
+        <input id="dietary" name="Dietary Requirements" type="text" placeholder="e.g. vegetarian, gluten-free" />
       </div>
       <button class="btn" type="submit">Confirm My RSVP</button>
     </form>
@@ -177,16 +182,24 @@
 
   <script>
     document.getElementById('rsvp-form').addEventListener('submit', function(e) {
-      e.preventDefault();
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
       const guests = document.getElementById('guests').value;
+      const dietary = document.getElementById('dietary').value.trim() || 'none';
 
-      this.style.display = 'none';
-      const s = document.getElementById('success');
-      s.style.display = 'block';
-      document.getElementById('success-msg').textContent =
-        `Thanks, ${name}! We'll send a confirmation to ${email}. (${guests} guest${guests === '1' ? '' : 's'})`;
+      // Set hidden fields before submit
+      document.getElementById('hidden-email').value = email;
+      document.getElementById('hidden-subject').value =
+        name + ' has RSVP\'d to Summer Gala 2027!';
+
+      // Show success after a short delay (form submits normally)
+      setTimeout(function() {
+        document.getElementById('rsvp-form').style.display = 'none';
+        const s = document.getElementById('success');
+        s.style.display = 'block';
+        document.getElementById('success-msg').textContent =
+          'Thanks, ' + name + '! We\'ll send a confirmation to ' + email + '.';
+      }, 500);
     });
   </script>
 </body>
