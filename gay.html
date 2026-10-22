@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adwait & Robert 🏳️‍🌈</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0f0f0f;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Lato', sans-serif;
+    overflow: hidden;
+  }
+
+  .card {
+    position: relative;
+    width: min(520px, 95vw);
+    padding: 3rem 2.5rem;
+    text-align: center;
+    border-radius: 24px;
+    background: linear-gradient(145deg, #1a1a2e, #16213e, #0f3460);
+    box-shadow: 0 0 60px rgba(255,100,200,0.2), 0 0 120px rgba(100,150,255,0.1);
+    overflow: hidden;
+  }
+
+  .rainbow-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: linear-gradient(90deg,
+      #ff0018, #ffa52c, #ffff41, #008018, #0000f9, #86007d);
+  }
+
+  .hearts {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .heart {
+    position: absolute;
+    font-size: 1.4rem;
+    animation: floatUp 6s ease-in infinite;
+    opacity: 0;
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(100%) scale(0.5); opacity: 0; }
+    10%  { opacity: 0.7; }
+    90%  { opacity: 0.3; }
+    100% { transform: translateY(-120%) scale(1.1) rotate(20deg); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .heart { animation: none; opacity: 0.2; }
+  }
+
+  .emoji-banner {
+    font-size: 2.8rem;
+    margin-bottom: 1rem;
+    letter-spacing: 0.15em;
+  }
+
+  .title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(1rem, 4vw, 1.25rem);
+    font-weight: 400;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: #f0c4e8;
+    margin-bottom: 0.5rem;
+  }
+
+  .names {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    font-weight: 700;
+    background: linear-gradient(135deg, #ff9de2, #ffffff, #a0cfff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.15;
+    margin-bottom: 0.4rem;
+  }
+
+  .ampersand {
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(1.8rem, 6vw, 2.6rem);
+    background: linear-gradient(135deg, #ffd700, #ffb347);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: -0.2rem 0;
+  }
+
+  .divider {
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ff9de2, #a0cfff, transparent);
+    margin: 1.2rem auto;
+  }
+
+  .tagline {
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    font-style: italic;
+    color: #d4e8ff;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.4rem;
+  }
+
+  .flag {
+    font-size: 2rem;
+    letter-spacing: 0.3em;
+    margin-bottom: 0.6rem;
+  }
+
+  .date-note {
+    font-size: 0.78rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-top: 1.4rem;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="rainbow-bar"></div>
+  <div class="hearts" id="hearts"></div>
+  <div class="emoji-banner">💍 ✨ 💍</div>
+  <div class="title">Celebrating the Marriage of</div>
+  <div class="names">
+    Adwait
+    <span class="ampersand">&amp;</span>
+    Robert
+  </div>
+  <div class="divider"></div>
+  <div class="tagline">Love wins. Always. 🏳️‍🌈</div>
+  <div class="flag">🏳️‍🌈 🤍 🏳️‍🌈</div>
+  <div class="date-note">With love from your friends</div>
+</div>
+<script>
+  const heartsEl = document.getElementById('hearts');
+  const emojis = ['💕','💖','🌈','💛','🩷','💜','💙','🩵','🤍','✨','💍','🥂'];
+  const count = 18;
+  for (let i = 0; i < count; i++) {
+    const h = document.createElement('span');
+    h.className = 'heart';
+    h.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    h.style.left = (Math.random() * 100) + '%';
+    h.style.animationDelay = (Math.random() * 6) + 's';
+    h.style.fontSize = (0.9 + Math.random() * 1.2) + 'rem';
+    heartsEl.appendChild(h);
+  }
+</script>
+</body>
+</html>
