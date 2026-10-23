@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mental Math</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, sans-serif;
+    background: #0f172a;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  .container {
+    width: 380px;
+    text-align: center;
+    padding: 24px;
+  }
+  h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; color: #7dd3fc; }
+  .subtitle { font-size: 0.85rem; color: #94a3b8; margin-bottom: 20px; }
+
+  /* Timer bar */
+  .timer-track {
+    width: 100%;
+    height: 10px;
+    background: #1e293b;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .timer-bar {
+    height: 100%;
+    width: 100%;
+    background: #22c55e;
+    border-radius: 5px;
+    transition: background 0.3s;
+  }
+  .time-label { font-size: 0.8rem; color: #94a3b8; margin-bottom: 20px; }
+
+  /* Stats row */
+  .stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    font-size: 0.8rem;
+    color: #94a3b8;
+  }
+  .stats span strong { color: #f1f5f9; font-size: 1rem; display: block; }
+
+  /* Difficulty */
+  .diff-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+  .diff-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid #334155;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.15s;
+  }
+  .diff-btn.active { background: #0ea5e9; border-color: #0ea5e9; color: #fff; font-weight: 600; }
+
+  /* Op row */
+  .op-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .op-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid #334155;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.15s;
+  }
+  .op-btn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; font-weight: 600; }
+
+  /* Question */
+  .question {
+    font-size: 2.8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    min-height: 56px;
+  }
+
+  /* Input */
+  .input-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  input[type="number"] {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 1.3rem;
+    border-radius: 10px;
+    border: 2px solid #334155;
+    background: #1e293b;
+    color: #f1f5f9;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]:focus { border-color: #0ea5e9; }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .check-btn {
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 10px;
+    border: none;
+    background: #0ea5e9;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .check-btn:hover { background: #0284c7; }
+
+  /* Feedback */
+  .feedback {
+    font-size: 1rem;
+    font-weight: 600;
+    min-height: 24px;
+    margin-bottom: 8px;
+  }
+  .feedback.correct { color: #22c55e; }
+  .feedback.wrong { color: #ef4444; }
+
+  /* Start / end screen */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    z-index: 10;
+  }
+  .overlay h2 { font-size: 2rem; font-weight: 700; color: #7dd3fc; }
+  .overlay p { color: #94a3b8; font-size: 1rem; }
+  .overlay .big { font-size: 3rem; font-weight: 800; color: #f1f5f9; }
+  .start-btn {
+    padding: 14px 40px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 12px;
+    border: none;
+    background: #0ea5e9;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .start-btn:hover { background: #0284c7; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>⚡ Mental Math</h1>
+  <p class="subtitle">Answer as fast as you can!</p>
+
+  <div class="timer-track"><div class="timer-bar" id="timerBar"></div></div>
+  <div class="time-label" id="timeLabel">30s</div>
+
+  <div class="stats">
+    <span>Score<strong id="score">0</strong></span>
+    <span>Streak 🔥<strong id="streak">0</strong></span>
+    <span>Best<strong id="best">0</strong></span>
+  </div>
+
+  <div class="diff-row">
+    <button class="diff-btn" data-d="easy" onclick="setDiff(this)">Easy</button>
+    <button class="diff-btn active" data-d="medium" onclick="setDiff(this)">Medium</button>
+    <button class="diff-btn" data-d="hard" onclick="setDiff(this)">Hard</button>
+  </div>
+
+  <div class="op-row">
+    <button class="op-btn active" data-op="+" onclick="toggleOp(this)">+</button>
+    <button class="op-btn active" data-op="−" onclick="toggleOp(this)">−</button>
+    <button class="op-btn active" data-op="×" onclick="toggleOp(this)">×</button>
+    <button class="op-btn active" data-op="÷" onclick="toggleOp(this)">÷</button>
+  </div>
+
+  <div class="question" id="question">?</div>
+  <div class="input-row">
+    <input type="number" id="answer" placeholder="?" onkeydown="if(event.key==='Enter')check()">
+    <button class="check-btn" onclick="check()">✓</button>
+  </div>
+  <div class="feedback" id="feedback"></div>
+</div>
+
+<!-- Start overlay -->
+<div class="overlay" id="startOverlay">
+  <h2>⚡ Mental Math</h2>
+  <p>30 seconds. Score as many as you can.</p>
+  <div class="diff-row" style="margin:0">
+    <button class="diff-btn" data-d="easy" onclick="setDiff(this)">Easy</button>
+    <button class="diff-btn active" data-d="medium" onclick="setDiff(this)">Medium</button>
+    <button class="diff-btn" data-d="hard" onclick="setDiff(this)">Hard</button>
+  </div>
+  <button class="start-btn" onclick="startGame()">Start</button>
+</div>
+
+<!-- End overlay -->
+<div class="overlay" id="endOverlay" style="display:none">
+  <h2>Time's Up!</h2>
+  <p>Your score</p>
+  <div class="big" id="finalScore">0</div>
+  <p id="finalStreak"></p>
+  <button class="start-btn" onclick="startGame()">Play Again</button>
+</div>
+
+<script>
+  const DURATION = 30;
+  let score = 0, streak = 0, best = 0;
+  let timeLeft = DURATION;
+  let timerInterval = null;
+  let currentAnswer = 0;
+  let diff = 'medium';
+  let activeOps = ['+', '−', '×', '÷'];
+  let running = false;
+
+  const ranges = {
+    easy:   { add: [1,20],  mul: [1,5]  },
+    medium: { add: [1,50],  mul: [2,12] },
+    hard:   { add: [10,100],mul: [3,15] }
+  };
+
+  function rand(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function generate() {
+    const ops = activeOps.length ? activeOps : ['+'];
+    const op = ops[Math.floor(Math.random() * ops.length)];
+    const r = ranges[diff];
+    let a, b, ans;
+    if (op === '+') {
+      a = rand(...r.add); b = rand(...r.add); ans = a + b;
+    } else if (op === '−') {
+      a = rand(...r.add); b = rand(1, a); ans = a - b;
+    } else if (op === '×') {
+      a = rand(...r.mul); b = rand(...r.mul); ans = a * b;
+    } else {
+      b = rand(1, r.mul[1]); ans = rand(1, r.mul[1]); a = b * ans;
+    }
+    currentAnswer = ans;
+    document.getElementById('question').textContent = `${a} ${op} ${b} = ?`;
+  }
+
+  function check() {
+    if (!running) return;
+    const val = parseInt(document.getElementById('answer').value, 10);
+    if (isNaN(val)) return;
+    const fb = document.getElementById('feedback');
+    if (val === currentAnswer) {
+      score++;
+      streak++;
+      if (streak > best) best = streak;
+      fb.textContent = '✓ Correct!';
+      fb.className = 'feedback correct';
+    } else {
+      fb.textContent = `✗ ${currentAnswer}`;
+      fb.className = 'feedback wrong';
+      streak = 0;
+    }
+    updateStats();
+    document.getElementById('answer').value = '';
+    generate();
+    document.getElementById('answer').focus();
+  }
+
+  function updateStats() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('streak').textContent = streak;
+    document.getElementById('best').textContent = best;
+  }
+
+  function startGame() {
+    document.getElementById('startOverlay').style.display = 'none';
+    document.getElementById('endOverlay').style.display = 'none';
+    score = 0; streak = 0; timeLeft = DURATION; running = true;
+    updateStats();
+    generate();
+    document.getElementById('answer').value = '';
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('answer').focus();
+    clearInterval(timerInterval);
+    timerInterval = setInterval(tick, 100);
+  }
+
+  function tick() {
+    timeLeft -= 0.1;
+    if (timeLeft <= 0) { timeLeft = 0; endGame(); }
+    const pct = (timeLeft / DURATION) * 100;
+    const bar = document.getElementById('timerBar');
+    bar.style.width = pct + '%';
+    bar.style.background = pct > 50 ? '#22c55e' : pct > 25 ? '#f59e0b' : '#ef4444';
+    document.getElementById('timeLabel').textContent = Math.ceil(timeLeft) + 's';
+  }
+
+  function endGame() {
+    clearInterval(timerInterval);
+    running = false;
+    document.getElementById('finalScore').textContent = score;
+    const s = document.getElementById('finalStreak');
+    s.textContent = best > 1 ? `Best streak: ${best} 🔥` : '';
+    document.getElementById('endOverlay').style.display = 'flex';
+  }
+
+  function setDiff(btn) {
+    diff = btn.dataset.d;
+    document.querySelectorAll('.diff-btn').forEach(b => {
+      if (b.dataset.d === diff) b.classList.add('active');
+      else b.classList.remove('active');
+    });
+  }
+
+  function toggleOp(btn) {
+    btn.classList.toggle('active');
+    activeOps = [...document.querySelectorAll('.op-btn.active')].map(b => b.dataset.op);
+  }
+</script>
+</body>
+</html>
