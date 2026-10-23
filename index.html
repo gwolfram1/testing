@@ -272,7 +272,7 @@
 <!-- Start overlay -->
 <div class="overlay" id="startOverlay">
   <h2>⚡ Mental Math</h2>
-  <p>30 seconds. Score as many as you can.</p>
+  <p id="startSubtitle">30 seconds. Score as many as you can.</p>
   <div class="diff-row" style="margin:0">
     <button class="diff-btn" data-d="easy" onclick="setDiff(this)">Easy</button>
     <button class="diff-btn active" data-d="medium" onclick="setDiff(this)">Medium</button>
@@ -292,9 +292,10 @@
 </div>
 
 <script>
-  const DURATION = 30;
+  // Per-difficulty starting durations
+  const DURATIONS = { easy: 10, medium: 30, hard: 60 };
   let score = 0, streak = 0, best = 0;
-  let timeLeft = DURATION;
+  let timeLeft = 30;
   let timerInterval = null;
   let currentAnswer = null;   // number or [x1,x2] for quadratics
   let currentType = 'single'; // 'single' or 'quadratic'
@@ -304,9 +305,16 @@
 
   const ranges = {
     easy:   { add: [1,20],   mul: [1,5]  },
-    medium: { add: [1,50],   mul: [2,12] },
+    medium: { add: [5,100],  mul: [3,15] },  // upgraded from [1,50]/[2,12]
     hard:   { add: [10,200], mul: [3,20] }
   };
+
+  // Medium-mode extra question types (higher arithmetic)
+  const mediumTypes = [
+    'arithmetic', 'arithmetic', 'arithmetic',  // weighted higher
+    'exponent',   // a² or a³
+    'percent',    // nice % of n
+  ];
 
   // Hard-mode question types (picked randomly)
   const hardTypes = [
@@ -338,12 +346,12 @@
   function generate() {
     document.getElementById('hint').textContent = '';
 
-    if (diff !== 'hard') {
-      // Easy / Medium: standard arithmetic
+    if (diff === 'easy') {
+      // Easy: small arithmetic only
       showSingle();
       const ops = activeOps.length ? activeOps : ['+'];
       const op = ops[Math.floor(Math.random() * ops.length)];
-      const r = ranges[diff];
+      const r = ranges.easy;
       let a, b, ans;
       if (op === '+') {
         a = rand(...r.add); b = rand(...r.add); ans = a + b;
@@ -356,6 +364,46 @@
       }
       currentAnswer = ans;
       document.getElementById('question').textContent = `${a} ${op} ${b} = ?`;
+      return;
+    }
+
+    if (diff === 'medium') {
+      // Medium: bigger arithmetic + exponents + percent
+      showSingle();
+      const pool = mediumTypes;
+      const type = pool[Math.floor(Math.random() * pool.length)];
+      const r = ranges.medium;
+
+      if (type === 'arithmetic') {
+        const ops = activeOps.length ? activeOps : ['+'];
+        const op = ops[Math.floor(Math.random() * ops.length)];
+        let a, b, ans;
+        if (op === '+') {
+          a = rand(...r.add); b = rand(...r.add); ans = a + b;
+        } else if (op === '−') {
+          a = rand(...r.add); b = rand(1, a); ans = a - b;
+        } else if (op === '×') {
+          a = rand(...r.mul); b = rand(...r.mul); ans = a * b;
+        } else {
+          b = rand(1, r.mul[1]); ans = rand(1, r.mul[1]); a = b * ans;
+        }
+        currentAnswer = ans;
+        document.getElementById('question').textContent = `${a} ${op} ${b} = ?`;
+      } else if (type === 'exponent') {
+        const expB = rand(2, 3);
+        const maxA = expB === 2 ? 12 : 6;
+        const expA = rand(2, maxA);
+        currentAnswer = Math.pow(expA, expB);
+        const sup = expB === 2 ? '²' : '³';
+        document.getElementById('question').textContent = `${expA}${sup} = ?`;
+      } else if (type === 'percent') {
+        const p = [10, 20, 25, 50][rand(0, 3)];
+        const factor = 100 / p;
+        const ans = rand(2, 30);
+        const n = ans * factor;
+        currentAnswer = ans;
+        document.getElementById('question').textContent = `${p}% of ${n} = ?`;
+      }
       return;
     }
 
@@ -547,7 +595,9 @@
   function startGame() {
     document.getElementById('startOverlay').style.display = 'none';
     document.getElementById('endOverlay').style.display = 'none';
-    score = 0; streak = 0; timeLeft = DURATION; running = true;
+    score = 0; streak = 0;
+    timeLeft = DURATIONS[diff];
+    running = true;
     updateStats();
     generate();
     if (currentType === 'quadratic') {
@@ -565,7 +615,8 @@
   function tick() {
     timeLeft -= 0.1;
     if (timeLeft <= 0) { timeLeft = 0; endGame(); }
-    const pct = Math.min((timeLeft / DURATION) * 100, 100);
+    const maxTime = DURATIONS[diff];
+    const pct = Math.min((timeLeft / maxTime) * 100, 100);
     const bar = document.getElementById('timerBar');
     bar.style.width = pct + '%';
     bar.style.background = pct > 50 ? '#22c55e' : pct > 25 ? '#f59e0b' : '#ef4444';
@@ -590,11 +641,18 @@
     const note = document.getElementById('hardNote');
     if (diff === 'hard') {
       note.textContent = '🔥 Hard: exponents, roots, algebra, quadratics & systems';
+    } else if (diff === 'medium') {
+      note.textContent = '➕ Medium: bigger numbers, exponents & percents';
     } else {
       note.textContent = '';
     }
     const startHint = document.getElementById('hardHint');
     if (startHint) startHint.style.display = diff === 'hard' ? '' : 'none';
+
+    // Update start overlay subtitle with correct time
+    const timeMap = { easy: '10 seconds', medium: '30 seconds', hard: '1 minute' };
+    const sub = document.getElementById('startSubtitle');
+    if (sub) sub.textContent = `${timeMap[diff]}. Score as many as you can.`;
   }
 
   function toggleOp(btn) {
