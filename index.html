@@ -16,7 +16,7 @@
     min-height: 100vh;
   }
   .container {
-    width: 380px;
+    width: 420px;
     text-align: center;
     padding: 24px;
   }
@@ -74,7 +74,7 @@
   .op-row {
     display: flex;
     gap: 8px;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     justify-content: center;
     flex-wrap: wrap;
   }
@@ -90,13 +90,30 @@
   }
   .op-btn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; font-weight: 600; }
 
+  .hard-note {
+    font-size: 0.75rem;
+    color: #f59e0b;
+    margin-bottom: 20px;
+    min-height: 18px;
+  }
+
   /* Question */
   .question {
-    font-size: 2.8rem;
+    font-size: 2.4rem;
     font-weight: 700;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     margin-bottom: 20px;
     min-height: 56px;
+    line-height: 1.2;
+  }
+
+  /* Hint for algebra */
+  .hint {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 10px;
+    min-height: 18px;
+    font-style: italic;
   }
 
   /* Input */
@@ -129,6 +146,25 @@
     transition: background 0.15s;
   }
   .check-btn:hover { background: #0284c7; }
+
+  /* Multi-answer for quadratics */
+  .multi-input-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+  .multi-input-row label { color: #94a3b8; font-size: 0.85rem; white-space: nowrap; }
+  .multi-input-row input {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 1.1rem;
+    border-radius: 10px;
+    border: 2px solid #334155;
+    background: #1e293b;
+    color: #f1f5f9;
+    text-align: center;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  .multi-input-row input:focus { border-color: #0ea5e9; }
+  .multi-input-row input::-webkit-outer-spin-button,
+  .multi-input-row input::-webkit-inner-spin-button { -webkit-appearance: none; }
 
   /* Feedback */
   .feedback {
@@ -167,6 +203,15 @@
     transition: background 0.15s;
   }
   .start-btn:hover { background: #0284c7; }
+
+  .hard-badge {
+    font-size: 0.8rem;
+    background: #7c3aed22;
+    border: 1px solid #7c3aed;
+    color: #a78bfa;
+    border-radius: 20px;
+    padding: 4px 12px;
+  }
 </style>
 </head>
 <body>
@@ -190,18 +235,37 @@
     <button class="diff-btn" data-d="hard" onclick="setDiff(this)">Hard</button>
   </div>
 
-  <div class="op-row">
+  <div class="op-row" id="opRow">
     <button class="op-btn active" data-op="+" onclick="toggleOp(this)">+</button>
     <button class="op-btn active" data-op="−" onclick="toggleOp(this)">−</button>
     <button class="op-btn active" data-op="×" onclick="toggleOp(this)">×</button>
     <button class="op-btn active" data-op="÷" onclick="toggleOp(this)">÷</button>
   </div>
 
+  <div class="hard-note" id="hardNote"></div>
+
   <div class="question" id="question">?</div>
-  <div class="input-row">
-    <input type="number" id="answer" placeholder="?" onkeydown="if(event.key==='Enter')check()">
-    <button class="check-btn" onclick="check()">✓</button>
+  <div class="hint" id="hint"></div>
+
+  <!-- Standard single answer -->
+  <div id="singleInput">
+    <div class="input-row">
+      <input type="number" id="answer" placeholder="?" onkeydown="if(event.key==='Enter')check()">
+      <button class="check-btn" onclick="check()">✓</button>
+    </div>
   </div>
+
+  <!-- Two-answer for quadratics (x1 and x2) -->
+  <div id="doubleInput" style="display:none">
+    <div class="multi-input-row">
+      <label>x₁ =</label>
+      <input type="number" id="answer1" placeholder="?" onkeydown="if(event.key==='Enter')check()">
+      <label>x₂ =</label>
+      <input type="number" id="answer2" placeholder="?" onkeydown="if(event.key==='Enter')check()">
+      <button class="check-btn" onclick="check()">✓</button>
+    </div>
+  </div>
+
   <div class="feedback" id="feedback"></div>
 </div>
 
@@ -212,8 +276,9 @@
   <div class="diff-row" style="margin:0">
     <button class="diff-btn" data-d="easy" onclick="setDiff(this)">Easy</button>
     <button class="diff-btn active" data-d="medium" onclick="setDiff(this)">Medium</button>
-    <button class="diff-btn" data-d="hard" onclick="setDiff(this)">Hard</button>
+    <button class="diff-btn" data-d="hard" onclick="setDiff(this)">Hard 🔥</button>
   </div>
+  <p style="font-size:0.8rem;color:#a78bfa" id="hardHint">Hard mode includes algebra &amp; exponents</p>
   <button class="start-btn" onclick="startGame()">Start</button>
 </div>
 
@@ -231,61 +296,246 @@
   let score = 0, streak = 0, best = 0;
   let timeLeft = DURATION;
   let timerInterval = null;
-  let currentAnswer = 0;
+  let currentAnswer = null;   // number or [x1,x2] for quadratics
+  let currentType = 'single'; // 'single' or 'quadratic'
   let diff = 'medium';
   let activeOps = ['+', '−', '×', '÷'];
   let running = false;
 
   const ranges = {
-    easy:   { add: [1,20],  mul: [1,5]  },
-    medium: { add: [1,50],  mul: [2,12] },
-    hard:   { add: [10,100],mul: [3,15] }
+    easy:   { add: [1,20],   mul: [1,5]  },
+    medium: { add: [1,50],   mul: [2,12] },
+    hard:   { add: [10,200], mul: [3,20] }
   };
+
+  // Hard-mode question types (picked randomly)
+  const hardTypes = [
+    'arithmetic',  // big-number +−×÷ (same as before, but wider range)
+    'exponent',    // a^b
+    'sqrt',        // √(perfect square)
+    'linear',      // ax + b = c  → solve for x
+    'linear2',     // ax - b = c  → solve for x
+    'quadratic',   // (x-r1)(x-r2)=0 expanded → find both roots
+    'system',      // 2-var system: ax+by=c, dx+ey=f → solve for x only
+    'percent',     // what is p% of n?
+  ];
 
   function rand(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
+  function showSingle() {
+    document.getElementById('singleInput').style.display = '';
+    document.getElementById('doubleInput').style.display = 'none';
+    currentType = 'single';
+  }
+  function showDouble() {
+    document.getElementById('singleInput').style.display = 'none';
+    document.getElementById('doubleInput').style.display = '';
+    currentType = 'quadratic';
+  }
+
   function generate() {
-    const ops = activeOps.length ? activeOps : ['+'];
-    const op = ops[Math.floor(Math.random() * ops.length)];
-    const r = ranges[diff];
-    let a, b, ans;
-    if (op === '+') {
-      a = rand(...r.add); b = rand(...r.add); ans = a + b;
-    } else if (op === '−') {
-      a = rand(...r.add); b = rand(1, a); ans = a - b;
-    } else if (op === '×') {
-      a = rand(...r.mul); b = rand(...r.mul); ans = a * b;
-    } else {
-      b = rand(1, r.mul[1]); ans = rand(1, r.mul[1]); a = b * ans;
+    document.getElementById('hint').textContent = '';
+
+    if (diff !== 'hard') {
+      // Easy / Medium: standard arithmetic
+      showSingle();
+      const ops = activeOps.length ? activeOps : ['+'];
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      const r = ranges[diff];
+      let a, b, ans;
+      if (op === '+') {
+        a = rand(...r.add); b = rand(...r.add); ans = a + b;
+      } else if (op === '−') {
+        a = rand(...r.add); b = rand(1, a); ans = a - b;
+      } else if (op === '×') {
+        a = rand(...r.mul); b = rand(...r.mul); ans = a * b;
+      } else {
+        b = rand(1, r.mul[1]); ans = rand(1, r.mul[1]); a = b * ans;
+      }
+      currentAnswer = ans;
+      document.getElementById('question').textContent = `${a} ${op} ${b} = ?`;
+      return;
     }
-    currentAnswer = ans;
-    document.getElementById('question').textContent = `${a} ${op} ${b} = ?`;
+
+    // ── HARD MODE ──────────────────────────────────────────────
+    // Weight arithmetic a bit higher so ops buttons still matter
+    const pool = [...hardTypes, 'arithmetic', 'arithmetic'];
+    const type = pool[Math.floor(Math.random() * pool.length)];
+    showSingle();
+
+    switch (type) {
+
+      case 'arithmetic': {
+        // Use hard ranges + the user's active op buttons
+        const ops = activeOps.length ? activeOps : ['+'];
+        const op = ops[Math.floor(Math.random() * ops.length)];
+        const r = ranges.hard;
+        let a, b, ans;
+        if (op === '+') {
+          a = rand(...r.add); b = rand(...r.add); ans = a + b;
+        } else if (op === '−') {
+          a = rand(...r.add); b = rand(1, a); ans = a - b;
+        } else if (op === '×') {
+          a = rand(...r.mul); b = rand(2, 12); ans = a * b;
+        } else {
+          b = rand(2, 15); ans = rand(2, 15); a = b * ans;
+        }
+        currentAnswer = ans;
+        document.getElementById('question').textContent = `${a} ${op} ${b} = ?`;
+        break;
+      }
+
+      case 'exponent': {
+        // a^b where result is not insane; b in 2..4, a in 2..12
+        const b = rand(2, 4);
+        const maxA = b === 2 ? 15 : b === 3 ? 8 : 5;
+        const a = rand(2, maxA);
+        currentAnswer = Math.pow(a, b);
+        const sup = b === 2 ? '²' : b === 3 ? '³' : '⁴';
+        document.getElementById('question').textContent = `${a}${sup} = ?`;
+        break;
+      }
+
+      case 'sqrt': {
+        // perfect squares: 1² … 20²
+        const root = rand(4, 20);
+        currentAnswer = root;
+        document.getElementById('question').textContent = `√${root * root} = ?`;
+        break;
+      }
+
+      case 'linear': {
+        // ax + b = c  →  x = (c-b)/a, keep x integer in 1..20
+        const a = rand(2, 9);
+        const x = rand(1, 20);
+        const b = rand(1, 50);
+        const c = a * x + b;
+        currentAnswer = x;
+        document.getElementById('question').textContent = `${a}x + ${b} = ${c}`;
+        document.getElementById('hint').textContent = 'Solve for x';
+        break;
+      }
+
+      case 'linear2': {
+        // ax - b = c
+        const a = rand(2, 9);
+        const x = rand(2, 20);
+        const b = rand(1, 30);
+        const c = a * x - b;
+        currentAnswer = x;
+        document.getElementById('question').textContent = `${a}x − ${b} = ${c}`;
+        document.getElementById('hint').textContent = 'Solve for x';
+        break;
+      }
+
+      case 'quadratic': {
+        // (x - r1)(x - r2) = 0  →  x² - (r1+r2)x + r1*r2 = 0
+        // roots are small integers so it's doable mentally
+        const r1 = rand(1, 10);
+        const r2 = rand(1, 10);
+        const bCoef = r1 + r2;       // coefficient of x (minus sign in front)
+        const cCoef = r1 * r2;
+        showDouble();
+        currentAnswer = [r1, r2];
+        document.getElementById('question').textContent =
+          `x² − ${bCoef}x + ${cCoef} = 0`;
+        document.getElementById('hint').textContent = 'Enter both roots (any order)';
+        break;
+      }
+
+      case 'system': {
+        // System:  a1x + b1y = c1
+        //          a2x + b2y = c2
+        // Pick nice x,y then build coefficients
+        const x = rand(1, 10), y = rand(1, 10);
+        const a1 = rand(1, 5), b1 = rand(1, 5);
+        const a2 = rand(1, 5), b2 = rand(1, 5);
+        // Make sure they're not parallel (det ≠ 0)
+        if (a1 * b2 === a2 * b1) { generate(); return; }
+        const c1 = a1 * x + b1 * y;
+        const c2 = a2 * x + b2 * y;
+        currentAnswer = x;
+        document.getElementById('question').innerHTML =
+          `${a1}x + ${b1}y = ${c1}<br>${a2}x + ${b2}y = ${c2}`;
+        document.getElementById('hint').textContent = 'Solve for x only';
+        break;
+      }
+
+      case 'percent': {
+        // What is p% of n?  → keep answer integer
+        const p = [5, 10, 15, 20, 25, 50][rand(0, 5)];
+        // pick n so result is integer
+        const factor = 100 / p;
+        const ans = rand(1, 20);
+        const n = ans * factor;
+        currentAnswer = ans;
+        document.getElementById('question').textContent = `${p}% of ${n} = ?`;
+        break;
+      }
+
+      default:
+        generate();
+    }
   }
 
   function check() {
     if (!running) return;
-    const val = parseInt(document.getElementById('answer').value, 10);
-    if (isNaN(val)) return;
     const fb = document.getElementById('feedback');
-    if (val === currentAnswer) {
+
+    let correct = false;
+
+    if (currentType === 'quadratic') {
+      const v1 = parseInt(document.getElementById('answer1').value, 10);
+      const v2 = parseInt(document.getElementById('answer2').value, 10);
+      if (isNaN(v1) || isNaN(v2)) return;
+      const [r1, r2] = currentAnswer;
+      correct = (v1 === r1 && v2 === r2) || (v1 === r2 && v2 === r1);
+    } else {
+      const val = parseInt(document.getElementById('answer').value, 10);
+      if (isNaN(val)) return;
+      correct = val === currentAnswer;
+    }
+
+    if (correct) {
       score++;
       streak++;
       if (streak > best) best = streak;
-      const bonus = diff === 'easy' ? 5 : 3;
+      const bonus = diff === 'easy' ? 5 : diff === 'medium' ? 3 : 2;
       timeLeft += bonus;
       fb.textContent = `✓ Correct! +${bonus}s`;
       fb.className = 'feedback correct';
     } else {
-      fb.textContent = `✗ ${currentAnswer}`;
+      if (currentType === 'quadratic') {
+        fb.textContent = `✗ Roots: ${currentAnswer[0]} and ${currentAnswer[1]}`;
+      } else {
+        fb.textContent = `✗ ${currentAnswer}`;
+      }
       fb.className = 'feedback wrong';
       streak = 0;
     }
+
     updateStats();
-    document.getElementById('answer').value = '';
+
+    // Clear inputs
+    if (currentType === 'quadratic') {
+      document.getElementById('answer1').value = '';
+      document.getElementById('answer2').value = '';
+    } else {
+      document.getElementById('answer').value = '';
+    }
+
     generate();
-    document.getElementById('answer').focus();
+    focusInput();
+  }
+
+  function focusInput() {
+    if (currentType === 'quadratic') {
+      document.getElementById('answer1').focus();
+    } else {
+      document.getElementById('answer').focus();
+    }
   }
 
   function updateStats() {
@@ -300,9 +550,14 @@
     score = 0; streak = 0; timeLeft = DURATION; running = true;
     updateStats();
     generate();
-    document.getElementById('answer').value = '';
+    if (currentType === 'quadratic') {
+      document.getElementById('answer1').value = '';
+      document.getElementById('answer2').value = '';
+    } else {
+      document.getElementById('answer').value = '';
+    }
     document.getElementById('feedback').textContent = '';
-    document.getElementById('answer').focus();
+    focusInput();
     clearInterval(timerInterval);
     timerInterval = setInterval(tick, 100);
   }
@@ -332,12 +587,23 @@
       if (b.dataset.d === diff) b.classList.add('active');
       else b.classList.remove('active');
     });
+    const note = document.getElementById('hardNote');
+    if (diff === 'hard') {
+      note.textContent = '🔥 Hard: exponents, roots, algebra, quadratics & systems';
+    } else {
+      note.textContent = '';
+    }
+    const startHint = document.getElementById('hardHint');
+    if (startHint) startHint.style.display = diff === 'hard' ? '' : 'none';
   }
 
   function toggleOp(btn) {
     btn.classList.toggle('active');
     activeOps = [...document.querySelectorAll('.op-btn.active')].map(b => b.dataset.op);
   }
+
+  // Init: hide hard hint on start overlay since default is medium
+  document.getElementById('hardHint').style.display = 'none';
 </script>
 </body>
 </html>
