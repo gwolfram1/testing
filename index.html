@@ -212,6 +212,15 @@
     border-radius: 20px;
     padding: 4px 12px;
   }
+
+  .calc-badge {
+    font-size: 0.8rem;
+    background: #06b6d422;
+    border: 1px solid #06b6d4;
+    color: #67e8f9;
+    border-radius: 20px;
+    padding: 4px 12px;
+  }
 </style>
 </head>
 <body>
@@ -233,6 +242,7 @@
     <button class="diff-btn" data-d="easy" onclick="setDiff(this)">Easy</button>
     <button class="diff-btn active" data-d="medium" onclick="setDiff(this)">Medium</button>
     <button class="diff-btn" data-d="hard" onclick="setDiff(this)">Hard</button>
+    <button class="diff-btn" data-d="calculus" onclick="setDiff(this)">Calculus ∫</button>
   </div>
 
   <div class="op-row" id="opRow">
@@ -277,8 +287,10 @@
     <button class="diff-btn" data-d="easy" onclick="setDiff(this)">Easy</button>
     <button class="diff-btn active" data-d="medium" onclick="setDiff(this)">Medium</button>
     <button class="diff-btn" data-d="hard" onclick="setDiff(this)">Hard 🔥</button>
+    <button class="diff-btn" data-d="calculus" onclick="setDiff(this)">Calculus ∫</button>
   </div>
   <p style="font-size:0.8rem;color:#a78bfa" id="hardHint">Hard mode includes algebra &amp; exponents</p>
+  <p style="font-size:0.8rem;color:#67e8f9" id="calcHint" style="display:none">Calculus: derivatives, integrals &amp; limits — 5 minute timer</p>
   <button class="start-btn" onclick="startGame()">Start</button>
 </div>
 
@@ -293,6 +305,7 @@
 
 <script>
   const DURATION = 30;
+  const CALC_DURATION = 300; // 5 minutes for calculus
   let score = 0, streak = 0, best = 0;
   let timeLeft = DURATION;
   let timerInterval = null;
@@ -337,6 +350,107 @@
 
   function generate() {
     document.getElementById('hint').textContent = '';
+
+    if (diff === 'calculus') {
+      showSingle();
+      const calcTypes = [
+        'derivative_poly',   // d/dx of ax^n
+        'derivative_const',  // d/dx of constant = 0
+        'integral_poly',     // ∫ax^n dx (give coefficient of result)
+        'limit_simple',      // lim x->c of ax+b
+        'limit_cancel',      // lim x->c of (x^2-c^2)/(x-c) = 2c
+        'deriv_product',     // d/dx of x^a evaluated at x=k
+        'second_deriv',      // second derivative of ax^n
+      ];
+      const type = calcTypes[Math.floor(Math.random() * calcTypes.length)];
+
+      switch (type) {
+
+        case 'derivative_poly': {
+          // d/dx [a·xⁿ] = a·n·xⁿ⁻¹  — ask for the coefficient a·n
+          const n = rand(2, 6);
+          const a = rand(1, 8);
+          const ans = a * n;
+          currentAnswer = ans;
+          const sup = ['','','²','³','⁴','⁵','⁶'][n];
+          document.getElementById('question').innerHTML = `d/dx [${a}x${sup}] = ?·x<sup>${n-1}</sup>`;
+          document.getElementById('hint').textContent = 'Give the coefficient only';
+          break;
+        }
+
+        case 'derivative_const': {
+          const c = rand(1, 100);
+          currentAnswer = 0;
+          document.getElementById('question').textContent = `d/dx [${c}] = ?`;
+          document.getElementById('hint').textContent = 'Derivative of a constant';
+          break;
+        }
+
+        case 'integral_poly': {
+          // ∫ a·xⁿ dx = (a/(n+1))·xⁿ⁺¹ — pick values so answer is integer
+          const n = rand(1, 5);
+          const ans = rand(1, 8);
+          const a = ans * (n + 1); // a/(n+1) = ans  →  a = ans*(n+1)
+          const sup = ['','','²','³','⁴','⁵','⁶'][n];
+          const supUp = ['','','²','³','⁴','⁵','⁶'][n+1];
+          currentAnswer = ans;
+          document.getElementById('question').innerHTML = `∫ ${a}x${sup} dx = ?·x${supUp} + C`;
+          document.getElementById('hint').textContent = 'Give the coefficient only';
+          break;
+        }
+
+        case 'limit_simple': {
+          // lim x→c of (ax + b)
+          const a = rand(1, 10);
+          const b = rand(0, 20);
+          const c = rand(1, 10);
+          currentAnswer = a * c + b;
+          document.getElementById('question').textContent = `lim(x→${c}) of ${a}x + ${b} = ?`;
+          break;
+        }
+
+        case 'limit_cancel': {
+          // lim x→c of (x²−c²)/(x−c) = x+c evaluated at x=c = 2c
+          const c = rand(2, 10);
+          currentAnswer = 2 * c;
+          document.getElementById('question').innerHTML =
+            `lim(x→${c}) of (x²−${c*c})/(x−${c}) = ?`;
+          document.getElementById('hint').textContent = 'Factor & cancel';
+          break;
+        }
+
+        case 'deriv_product': {
+          // d/dx [a·xⁿ] evaluated at x = k
+          const n = rand(2, 4);
+          const a = rand(1, 6);
+          const k = rand(1, 5);
+          const ans = a * n * Math.pow(k, n - 1);
+          currentAnswer = ans;
+          const sup = ['','','²','³','⁴'][n];
+          document.getElementById('question').innerHTML =
+            `d/dx [${a}x${sup}] at x=${k} = ?`;
+          break;
+        }
+
+        case 'second_deriv': {
+          // d²/dx² [a·xⁿ] = a·n·(n-1)·xⁿ⁻² — ask for the coefficient
+          const n = rand(3, 5);
+          const a = rand(1, 5);
+          const ans = a * n * (n - 1);
+          currentAnswer = ans;
+          const sup = ['','','²','³','⁴','⁵'][n];
+          const supDown = ['','','²','³'][n-2] || '';
+          document.getElementById('question').innerHTML =
+            `d²/dx² [${a}x${sup}] = ?·x${supDown}`;
+          document.getElementById('hint').textContent = 'Give the coefficient only';
+          break;
+        }
+
+        default:
+          generate();
+      }
+      return;
+    }
 
     if (diff !== 'hard') {
       // Easy / Medium: standard arithmetic
@@ -502,9 +616,13 @@
       score++;
       streak++;
       if (streak > best) best = streak;
-      const bonus = diff === 'easy' ? 5 : diff === 'medium' ? 3 : 2;
-      timeLeft += bonus;
-      fb.textContent = `✓ Correct! +${bonus}s`;
+      const bonus = diff === 'easy' ? 5 : diff === 'medium' ? 3 : diff === 'calculus' ? 0 : 2;
+      if (bonus > 0) {
+        timeLeft += bonus;
+        fb.textContent = `✓ Correct! +${bonus}s`;
+      } else {
+        fb.textContent = '✓ Correct!';
+      }
       fb.className = 'feedback correct';
     } else {
       if (currentType === 'quadratic') {
@@ -547,7 +665,9 @@
   function startGame() {
     document.getElementById('startOverlay').style.display = 'none';
     document.getElementById('endOverlay').style.display = 'none';
-    score = 0; streak = 0; timeLeft = DURATION; running = true;
+    score = 0; streak = 0;
+    timeLeft = diff === 'calculus' ? CALC_DURATION : DURATION;
+    running = true;
     updateStats();
     generate();
     if (currentType === 'quadratic') {
@@ -565,11 +685,14 @@
   function tick() {
     timeLeft -= 0.1;
     if (timeLeft <= 0) { timeLeft = 0; endGame(); }
-    const pct = Math.min((timeLeft / DURATION) * 100, 100);
+    const totalDur = diff === 'calculus' ? CALC_DURATION : DURATION;
+    const pct = Math.min((timeLeft / totalDur) * 100, 100);
     const bar = document.getElementById('timerBar');
     bar.style.width = pct + '%';
     bar.style.background = pct > 50 ? '#22c55e' : pct > 25 ? '#f59e0b' : '#ef4444';
-    document.getElementById('timeLabel').textContent = Math.ceil(timeLeft) + 's';
+    const secs = Math.ceil(timeLeft);
+    document.getElementById('timeLabel').textContent =
+      diff === 'calculus' ? `${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}` : secs + 's';
   }
 
   function endGame() {
@@ -590,11 +713,15 @@
     const note = document.getElementById('hardNote');
     if (diff === 'hard') {
       note.textContent = '🔥 Hard: exponents, roots, algebra, quadratics & systems';
+    } else if (diff === 'calculus') {
+      note.textContent = '∫ Calculus: derivatives, integrals & limits — 5 minute timer';
     } else {
       note.textContent = '';
     }
     const startHint = document.getElementById('hardHint');
+    const calcHint = document.getElementById('calcHint');
     if (startHint) startHint.style.display = diff === 'hard' ? '' : 'none';
+    if (calcHint) calcHint.style.display = diff === 'calculus' ? '' : 'none';
   }
 
   function toggleOp(btn) {
@@ -602,8 +729,9 @@
     activeOps = [...document.querySelectorAll('.op-btn.active')].map(b => b.dataset.op);
   }
 
-  // Init: hide hard hint on start overlay since default is medium
+  // Init: hide hard/calc hints on start overlay since default is medium
   document.getElementById('hardHint').style.display = 'none';
+  document.getElementById('calcHint').style.display = 'none';
 </script>
 </body>
 </html>
