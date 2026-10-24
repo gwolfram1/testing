@@ -221,6 +221,25 @@
     border-radius: 20px;
     padding: 4px 12px;
   }
+
+  /* Subject selector */
+  .subject-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .subj-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid #334155;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.15s;
+  }
+  .subj-btn.active { background: #0d9488; border-color: #0d9488; color: #fff; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -283,14 +302,33 @@
 <div class="overlay" id="startOverlay">
   <h2>⚡ Mental Math</h2>
   <p>30 seconds. Score as many as you can.</p>
-  <div class="diff-row" style="margin:0">
-    <button class="diff-btn" data-d="easy" onclick="setDiff(this)">Easy</button>
-    <button class="diff-btn active" data-d="medium" onclick="setDiff(this)">Medium</button>
-    <button class="diff-btn" data-d="hard" onclick="setDiff(this)">Hard 🔥</button>
-    <button class="diff-btn" data-d="calculus" onclick="setDiff(this)">Calculus ∫</button>
+
+  <p style="font-size:0.75rem;color:#64748b;margin-bottom:4px;">SUBJECT</p>
+  <div class="subject-row" style="margin-bottom:12px">
+    <button class="subj-btn active" data-s="math" onclick="setSubject(this)">🔢 Math</button>
+    <button class="subj-btn" data-s="chemistry" onclick="setSubject(this)">⚗️ Chemistry</button>
+    <button class="subj-btn" data-s="biology" onclick="setSubject(this)">🧬 Biology</button>
   </div>
-  <p style="font-size:0.8rem;color:#a78bfa" id="hardHint">Hard mode includes algebra &amp; exponents</p>
-  <p style="font-size:0.8rem;color:#67e8f9" id="calcHint" style="display:none">Calculus: derivatives, integrals &amp; limits — 5 minute timer</p>
+
+  <div id="mathOptions">
+    <div class="diff-row" style="margin:0">
+      <button class="diff-btn" data-d="easy" onclick="setDiff(this)">Easy</button>
+      <button class="diff-btn active" data-d="medium" onclick="setDiff(this)">Medium</button>
+      <button class="diff-btn" data-d="hard" onclick="setDiff(this)">Hard 🔥</button>
+      <button class="diff-btn" data-d="calculus" onclick="setDiff(this)">Calculus ∫</button>
+    </div>
+    <p style="font-size:0.8rem;color:#a78bfa" id="hardHint">Hard mode includes algebra &amp; exponents</p>
+    <p style="font-size:0.8rem;color:#67e8f9" id="calcHint" style="display:none">Calculus: derivatives, integrals &amp; limits — 5 minute timer</p>
+  </div>
+
+  <div id="chemOptions" style="display:none">
+    <p style="font-size:0.8rem;color:#86efac">Stoichiometry, molar mass &amp; balancing — 30 seconds</p>
+  </div>
+
+  <div id="bioOptions" style="display:none">
+    <p style="font-size:0.8rem;color:#f9a8d4">Genetics ratios, cell counts &amp; biology calculations — 30 seconds</p>
+  </div>
+
   <button class="start-btn" onclick="startGame()">Start</button>
 </div>
 
@@ -314,6 +352,7 @@
   let diff = 'medium';
   let activeOps = ['+', '−', '×', '÷'];
   let running = false;
+  let subject = 'math'; // 'math' | 'chemistry' | 'biology'
 
   const ranges = {
     easy:   { add: [1,20],   mul: [1,5]  },
@@ -348,8 +387,203 @@
     currentType = 'quadratic';
   }
 
+  function setSubject(btn) {
+    subject = btn.dataset.s;
+    document.querySelectorAll('.subj-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.s === subject);
+    });
+    document.getElementById('mathOptions').style.display = subject === 'math' ? '' : 'none';
+    document.getElementById('chemOptions').style.display = subject === 'chemistry' ? '' : 'none';
+    document.getElementById('bioOptions').style.display = subject === 'biology' ? '' : 'none';
+  }
+
+  // ── CHEMISTRY QUESTIONS ────────────────────────────────────────────────────
+  // Molar masses of common elements (rounded integers)
+  const MOLAR = { H:1, C:12, N:14, O:16, Na:23, Mg:24, Al:27, S:32, Cl:35, K:39, Ca:40, Fe:56, Cu:64, Zn:65, Br:80, Ag:108 };
+
+  function generateChemistry() {
+    showSingle();
+    document.getElementById('hint').textContent = '';
+    const types = [
+      'molar_element',   // molar mass of single element × n
+      'molar_compound',  // molar mass of a simple compound
+      'moles_to_grams',  // n moles of X = ? grams
+      'atoms_in_moles',  // n moles × 6 (simplified Avogadro ×10²³, give the integer)
+      'balance_ratio',   // ratio question from a balanced equation
+      'percent_comp',    // % mass of one element in a compound
+    ];
+    const type = types[Math.floor(Math.random() * types.length)];
+
+    switch (type) {
+      case 'molar_element': {
+        const elems = Object.keys(MOLAR);
+        const el = elems[rand(0, elems.length - 1)];
+        const n = rand(1, 5);
+        currentAnswer = MOLAR[el] * n;
+        document.getElementById('question').textContent =
+          `Molar mass of ${n}${el} = ? g/mol`;
+        break;
+      }
+      case 'molar_compound': {
+        // Simple compounds: H2O, CO2, NaCl, CaCO3, NH3, CH4, H2SO4
+        const compounds = [
+          { f: 'H₂O',   m: 2*1 + 16 },
+          { f: 'CO₂',   m: 12 + 2*16 },
+          { f: 'NaCl',  m: 23 + 35 },
+          { f: 'NH₃',   m: 14 + 3*1 },
+          { f: 'CH₄',   m: 12 + 4*1 },
+          { f: 'H₂SO₄', m: 2*1 + 32 + 4*16 },
+          { f: 'CaCO₃', m: 40 + 12 + 3*16 },
+          { f: 'KOH',   m: 39 + 16 + 1 },
+          { f: 'HCl',   m: 1 + 35 },
+          { f: 'MgO',   m: 24 + 16 },
+        ];
+        const c = compounds[rand(0, compounds.length - 1)];
+        currentAnswer = c.m;
+        document.getElementById('question').textContent =
+          `Molar mass of ${c.f} = ? g/mol`;
+        break;
+      }
+      case 'moles_to_grams': {
+        const elems = ['C','O','Na','Ca','Fe','Cu'];
+        const el = elems[rand(0, elems.length - 1)];
+        const n = rand(1, 6);
+        currentAnswer = MOLAR[el] * n;
+        document.getElementById('question').textContent = `${n} mol of ${el} = ? g`;
+        break;
+      }
+      case 'atoms_in_moles': {
+        // Simplified: n moles × 6 (representing ×10²³), answer is just the integer multiplier
+        const n = rand(1, 8);
+        currentAnswer = n * 6;
+        document.getElementById('question').textContent =
+          `${n} mol × 6.02×10²³ ≈ ?×10²³ atoms`;
+        document.getElementById('hint').textContent = 'Give the whole-number coefficient';
+        break;
+      }
+      case 'balance_ratio': {
+        // e.g. 2H₂ + O₂ → 2H₂O: if you have n mol O₂, how many mol H₂O?
+        const scenarios = [
+          { q: `2H₂ + O₂ → 2H₂O\n? mol H₂O from 3 mol O₂`, a: 6 },
+          { q: `N₂ + 3H₂ → 2NH₃\n? mol NH₃ from 4 mol N₂`, a: 8 },
+          { q: `2CO + O₂ → 2CO₂\n? mol CO₂ from 5 mol CO`, a: 5 },
+          { q: `CH₄ + 2O₂ → CO₂ + 2H₂O\n? mol H₂O from 3 mol CH₄`, a: 6 },
+        ];
+        const sc = scenarios[rand(0, scenarios.length - 1)];
+        currentAnswer = sc.a;
+        document.getElementById('question').innerHTML = sc.q.replace('\n', '<br>');
+        document.getElementById('hint').textContent = 'Use mole ratios';
+        break;
+      }
+      case 'percent_comp': {
+        // % mass of H in H₂O = 2/18 × 100 ≈ 11
+        const items = [
+          { q: '% mass of H in H₂O', a: Math.round(2/18*100) },
+          { q: '% mass of O in CO₂', a: Math.round(32/44*100) },
+          { q: '% mass of Na in NaCl', a: Math.round(23/58*100) },
+          { q: '% mass of C in CH₄', a: Math.round(12/16*100) },
+          { q: '% mass of Ca in CaCO₃', a: Math.round(40/100*100) },
+        ];
+        const it = items[rand(0, items.length - 1)];
+        currentAnswer = it.a;
+        document.getElementById('question').textContent = it.q + ' ≈ ?%';
+        document.getElementById('hint').textContent = 'Round to nearest whole number';
+        break;
+      }
+      default: generateChemistry();
+    }
+  }
+
+  // ── BIOLOGY QUESTIONS ──────────────────────────────────────────────────────
+  function generateBiology() {
+    showSingle();
+    document.getElementById('hint').textContent = '';
+    const types = [
+      'mendel_ratio',    // monohybrid cross offspring ratio
+      'dihybrid_count',  // dihybrid cross: # of phenotype combos
+      'cell_division',   // after n mitotic divisions: how many cells?
+      'atp_yield',       // ATP from n glucose in glycolysis/respiration
+      'chromosome',      // human diploid / haploid chromosome count
+      'allele_prob',     // probability of trait from cross
+    ];
+    const type = types[Math.floor(Math.random() * types.length)];
+
+    switch (type) {
+      case 'mendel_ratio': {
+        // Aa × Aa → 1AA:2Aa:1aa → 3 dominant : 1 recessive
+        const qs = [
+          { q: 'Aa × Aa cross: dominant : recessive ratio\nOut of 4 offspring, how many show dominant trait?', a: 3 },
+          { q: 'Aa × aa cross: Out of 4 offspring,\nhow many show dominant trait?', a: 2 },
+          { q: 'AA × aa cross: Out of 4 offspring,\nhow many show dominant trait?', a: 4 },
+        ];
+        const q = qs[rand(0, qs.length - 1)];
+        currentAnswer = q.a;
+        document.getElementById('question').innerHTML = q.q.replace('\n','<br>');
+        break;
+      }
+      case 'dihybrid_count': {
+        // AaBb × AaBb → 9:3:3:1, 4 phenotype combinations
+        currentAnswer = 4;
+        document.getElementById('question').textContent =
+          'AaBb × AaBb cross:\nhow many different phenotypes?';
+        document.getElementById('question').innerHTML =
+          'AaBb × AaBb cross:<br>how many different phenotypes?';
+        document.getElementById('hint').textContent = '9:3:3:1 ratio';
+        break;
+      }
+      case 'cell_division': {
+        // 1 cell after n mitotic divisions = 2^n cells
+        const n = rand(1, 6);
+        currentAnswer = Math.pow(2, n);
+        document.getElementById('question').textContent =
+          `1 cell → ${n} mitotic divisions = ? cells`;
+        break;
+      }
+      case 'atp_yield': {
+        const scenarios = [
+          { q: 'ATP from 1 glucose in glycolysis only?', a: 2 },
+          { q: 'Net ATP from 1 glucose in aerobic respiration?', a: 36 },
+          { q: 'ATP from 2 glucose in glycolysis only?', a: 4 },
+          { q: 'Net ATP from 2 glucose in aerobic respiration?', a: 72 },
+        ];
+        const sc = scenarios[rand(0, scenarios.length - 1)];
+        currentAnswer = sc.a;
+        document.getElementById('question').textContent = sc.q;
+        break;
+      }
+      case 'chromosome': {
+        const qs = [
+          { q: 'Human diploid (2n) chromosome count?', a: 46 },
+          { q: 'Human haploid (n) chromosome count?', a: 23 },
+          { q: 'Chromosomes in a human egg cell?', a: 23 },
+          { q: 'Chromosomes in a human somatic cell?', a: 46 },
+          { q: 'Fruit fly (Drosophila) diploid count?', a: 8 },
+        ];
+        const q = qs[rand(0, qs.length - 1)];
+        currentAnswer = q.a;
+        document.getElementById('question').textContent = q.q;
+        break;
+      }
+      case 'allele_prob': {
+        const qs = [
+          { q: 'Aa × Aa: probability of aa offspring? (% chance)', a: 25 },
+          { q: 'Aa × Aa: probability of Aa offspring? (% chance)', a: 50 },
+          { q: 'Aa × aa: probability of Aa offspring? (% chance)', a: 50 },
+          { q: 'AA × aa: probability of Aa offspring? (% chance)', a: 100 },
+        ];
+        const q = qs[rand(0, qs.length - 1)];
+        currentAnswer = q.a;
+        document.getElementById('question').textContent = q.q;
+        break;
+      }
+      default: generateBiology();
+    }
+  }
+
   function generate() {
     document.getElementById('hint').textContent = '';
+    if (subject === 'chemistry') { generateChemistry(); return; }
+    if (subject === 'biology')   { generateBiology();   return; }
 
     if (diff === 'calculus') {
       showSingle();
@@ -668,6 +902,9 @@
     score = 0; streak = 0;
     timeLeft = diff === 'calculus' ? CALC_DURATION : DURATION;
     running = true;
+    // Update title for subject
+    const titles = { math: '⚡ Mental Math', chemistry: '⚗️ Chemistry Quiz', biology: '🧬 Biology Quiz' };
+    document.querySelector('.container h1').textContent = titles[subject] || titles.math;
     updateStats();
     generate();
     if (currentType === 'quadratic') {
@@ -732,6 +969,9 @@
   // Init: hide hard/calc hints on start overlay since default is medium
   document.getElementById('hardHint').style.display = 'none';
   document.getElementById('calcHint').style.display = 'none';
+  // Subject panels: show math, hide others
+  document.getElementById('chemOptions').style.display = 'none';
+  document.getElementById('bioOptions').style.display = 'none';
 </script>
 </body>
 </html>
