@@ -330,7 +330,7 @@
   </div>
 
   <div id="bioOptions" style="display:none">
-    <p style="font-size:0.8rem;color:#f9a8d4">Genetics ratios, cell counts &amp; biology calculations — 30 seconds</p>
+    <p style="font-size:0.8rem;color:#f9a8d4">Bio 285: bonds, amino acids, protein structure &amp; trafficking — 1 minute timer</p>
   </div>
 
   <button class="start-btn" onclick="startGame()">Start</button>
@@ -348,6 +348,7 @@
 <script>
   const DURATION = 30;
   const CALC_DURATION = 300; // 5 minutes for calculus
+  const BIO_DURATION  = 60;  // 1 minute for biology
   let score = 0, streak = 0, best = 0;
   let timeLeft = DURATION;
   let timerInterval = null;
@@ -514,89 +515,65 @@
     }
   }
 
-  // ── BIOLOGY QUESTIONS ──────────────────────────────────────────────────────
+  // ── BIOLOGY QUESTIONS (Bio 285 — Cell & Molecular Biology) ───────────────
+  // Multiple-choice: user types 1, 2, 3, or 4
+  const BIO_QS = [
+    // Bonds & molecular interactions
+    { q: 'Adenine and thymine are connected by how many hydrogen bonds?', a: 2 },
+    { q: 'Cytosine and guanine are connected by how many hydrogen bonds?', a: 3 },
+    { q: 'Which bond forms between two full opposite charges?\n1=Hydrogen  2=Ionic  3=Dispersion  4=Covalent', a: 2 },
+    { q: 'Dispersion forces are caused by:\n1=Permanent charges  2=Random electron movement\n3=pH changes  4=Covalent sharing', a: 2 },
+    // Amino acids
+    { q: 'How many groups are amino acids categorized into based on R-group?', a: 4 },
+    { q: 'At physiological pH (7.0), free amino acids are:\n1=Neutral  2=All positive  3=Ionized  4=Deprotonated', a: 3 },
+    { q: 'Acidic amino acids have what in their side chain?\n1=Amine  2=Hydroxyl  3=Carboxyl  4=Methyl', a: 3 },
+    { q: 'Basic amino acids have what in their side chain?\n1=Carboxyl  2=Amine  3=Hydroxyl  4=Amide', a: 2 },
+    // Protein primary structure
+    { q: 'Protein primary structure is read from:\n1=C to N terminus  2=N to C terminus\n3=Either direction  4=Middle outward', a: 2 },
+    { q: 'How many residues complete one full turn of an alpha helix?', a: 4 }, // "every 3.6" — rounded
+    // Hydrogen bonds in secondary structure
+    { q: 'Alpha helices and beta sheets both rely on what type of bond?\n1=Disulfide  2=Ionic  3=Hydrogen  4=Covalent', a: 3 },
+    { q: 'In alpha helices, R-groups point:\n1=Inward toward the core  2=Outward away from the core\n3=Parallel to the helix  4=Downward only', a: 2 },
+    { q: 'Which amino acid destabilizes alpha helices due to its small side chain?\n1=Proline  2=Cysteine  3=Glycine  4=Lysine', a: 3 },
+    { q: 'Which amino acid restrains phi/psi rotation and breaks helices?\n1=Glycine  2=Proline  3=Alanine  4=Serine', a: 2 },
+    // Tertiary / quaternary
+    { q: 'Disulfide bonds form between side chains of which amino acid?\n1=Serine  2=Lysine  3=Cysteine  4=Proline', a: 3 },
+    { q: 'Each folded polypeptide in a multi-subunit protein is called a:\n1=Domain  2=Motif  3=Subunit  4=Segment', a: 3 },
+    // Protein folding
+    { q: 'The primary driving force for protein folding is the:\n1=Ionic effect  2=Hydrophobic effect\n3=Covalent network  4=pH gradient', a: 2 },
+    { q: 'Hsp70 binds to exposed __ patches on unfolded proteins.\n1=Polar  2=Charged  3=Hydrophilic  4=Hydrophobic', a: 4 },
+    { q: 'What does Hsp70 require to bind polypeptides more tightly?\n1=GTP hydrolysis  2=ATP hydrolysis\n3=pH increase  4=Disulfide bonds', a: 2 },
+    { q: 'GroEL/ES (hsp60) are classified as:\n1=Molecular chaperones  2=Chaperonins\n3=Importins  4=GTPases', a: 2 },
+    // Disease / misfolding
+    { q: 'Cystic fibrosis most commonly results from deletion of which amino acid?\n1=Alanine  2=Glycine  3=Phenylalanine  4=Serine', a: 3 },
+    { q: 'Prion disease involves aggregation of misfolded protein in the:\n1=Liver  2=Kidney  3=Brain  4=Muscle', a: 3 },
+    { q: 'Prion amyloid fibrils have what secondary structure?\n1=Alpha helices  2=Cross beta-sheet  3=Random coils  4=Turns', a: 2 },
+    // Protein isolation
+    { q: 'SDS-PAGE separates proteins based on:\n1=Charge  2=Affinity  3=Size/molecular weight  4=Shape', a: 3 },
+    { q: 'SDS denatures proteins and coats them with what charge?\n1=Positive  2=Neutral  3=Negative  4=Mixed', a: 3 },
+    { q: 'Reducing agents like DTT in SDS-PAGE break:\n1=Peptide bonds  2=Hydrogen bonds\n3=Disulfide bonds  4=Ionic bonds', a: 3 },
+    { q: 'Native-PAGE does NOT:\n1=Use a gel  2=Apply voltage\n3=Denature proteins  4=Move proteins', a: 3 },
+    // Nuclear transport
+    { q: 'Proteins destined for the nucleus carry a:\n1=NES  2=SRP  3=NLS  4=GAP', a: 3 },
+    { q: 'Nuclear transport receptors that import proteins are called:\n1=Exportins  2=Importins  3=Translocators  4=Chaperonins', a: 2 },
+    { q: 'Ran-GTP bound state allows importin to:\n1=Bind cargo  2=Release cargo\n3=Hydrolyze ATP  4=Enter the nucleus', a: 2 },
+    { q: 'Ran-GAP causes Ran to convert GTP to:\n1=AMP  2=ATP  3=cAMP  4=GDP', a: 4 },
+    { q: 'Ran-GEF causes Ran-GDP to exchange GDP for:\n1=ADP  2=cGMP  3=GTP  4=ATP', a: 3 },
+    // ER / secretory pathway
+    { q: 'The primary site for creation of transmembrane proteins is the:\n1=Golgi  2=Lysosome  3=Rough ER  4=Nucleus', a: 3 },
+    { q: 'What % of proteins are made in the cytoplasm and stay there?\n1=30%  2=50%  3=70%  4=90%', a: 3 },
+    // KD
+    { q: 'A smaller KD means the protein-ligand interaction is:\n1=Weaker  2=Tighter  3=Slower  4=Less specific', a: 2 },
+  ];
+
   function generateBiology() {
     showSingle();
     document.getElementById('hint').textContent = '';
-    const types = [
-      'mendel_ratio',    // monohybrid cross offspring ratio
-      'dihybrid_count',  // dihybrid cross: # of phenotype combos
-      'cell_division',   // after n mitotic divisions: how many cells?
-      'atp_yield',       // ATP from n glucose in glycolysis/respiration
-      'chromosome',      // human diploid / haploid chromosome count
-      'allele_prob',     // probability of trait from cross
-    ];
-    const type = types[Math.floor(Math.random() * types.length)];
-
-    switch (type) {
-      case 'mendel_ratio': {
-        // Aa × Aa → 1AA:2Aa:1aa → 3 dominant : 1 recessive
-        const qs = [
-          { q: 'Aa × Aa cross: dominant : recessive ratio\nOut of 4 offspring, how many show dominant trait?', a: 3 },
-          { q: 'Aa × aa cross: Out of 4 offspring,\nhow many show dominant trait?', a: 2 },
-          { q: 'AA × aa cross: Out of 4 offspring,\nhow many show dominant trait?', a: 4 },
-        ];
-        const q = qs[rand(0, qs.length - 1)];
-        currentAnswer = q.a;
-        document.getElementById('question').innerHTML = q.q.replace('\n','<br>');
-        break;
-      }
-      case 'dihybrid_count': {
-        // AaBb × AaBb → 9:3:3:1, 4 phenotype combinations
-        currentAnswer = 4;
-        document.getElementById('question').textContent =
-          'AaBb × AaBb cross:\nhow many different phenotypes?';
-        document.getElementById('question').innerHTML =
-          'AaBb × AaBb cross:<br>how many different phenotypes?';
-        document.getElementById('hint').textContent = '9:3:3:1 ratio';
-        break;
-      }
-      case 'cell_division': {
-        // 1 cell after n mitotic divisions = 2^n cells
-        const n = rand(1, 6);
-        currentAnswer = Math.pow(2, n);
-        document.getElementById('question').textContent =
-          `1 cell → ${n} mitotic divisions = ? cells`;
-        break;
-      }
-      case 'atp_yield': {
-        const scenarios = [
-          { q: 'ATP from 1 glucose in glycolysis only?', a: 2 },
-          { q: 'Net ATP from 1 glucose in aerobic respiration?', a: 36 },
-          { q: 'ATP from 2 glucose in glycolysis only?', a: 4 },
-          { q: 'Net ATP from 2 glucose in aerobic respiration?', a: 72 },
-        ];
-        const sc = scenarios[rand(0, scenarios.length - 1)];
-        currentAnswer = sc.a;
-        document.getElementById('question').textContent = sc.q;
-        break;
-      }
-      case 'chromosome': {
-        const qs = [
-          { q: 'Human diploid (2n) chromosome count?', a: 46 },
-          { q: 'Human haploid (n) chromosome count?', a: 23 },
-          { q: 'Chromosomes in a human egg cell?', a: 23 },
-          { q: 'Chromosomes in a human somatic cell?', a: 46 },
-          { q: 'Fruit fly (Drosophila) diploid count?', a: 8 },
-        ];
-        const q = qs[rand(0, qs.length - 1)];
-        currentAnswer = q.a;
-        document.getElementById('question').textContent = q.q;
-        break;
-      }
-      case 'allele_prob': {
-        const qs = [
-          { q: 'Aa × Aa: probability of aa offspring? (% chance)', a: 25 },
-          { q: 'Aa × Aa: probability of Aa offspring? (% chance)', a: 50 },
-          { q: 'Aa × aa: probability of Aa offspring? (% chance)', a: 50 },
-          { q: 'AA × aa: probability of Aa offspring? (% chance)', a: 100 },
-        ];
-        const q = qs[rand(0, qs.length - 1)];
-        currentAnswer = q.a;
-        document.getElementById('question').textContent = q.q;
-        break;
-      }
-      default: generateBiology();
+    const q = BIO_QS[Math.floor(Math.random() * BIO_QS.length)];
+    currentAnswer = q.a;
+    document.getElementById('question').innerHTML = q.q.replace(/\n/g, '<br>');
+    if (q.q.includes('1=') || q.q.includes('1 =')) {
+      document.getElementById('hint').textContent = 'Type the option number (1–4)';
     }
   }
 
@@ -1017,7 +994,7 @@
     document.getElementById('startOverlay').style.display = 'none';
     document.getElementById('endOverlay').style.display = 'none';
     score = 0; streak = 0;
-    timeLeft = diff === 'calculus' ? CALC_DURATION : DURATION;
+    timeLeft = diff === 'calculus' ? CALC_DURATION : subject === 'biology' ? BIO_DURATION : DURATION;
     running = true;
     // Update title for subject
     const titles = { math: '⚡ Mental Math', chemistry: '⚗️ Chemistry Quiz', biology: '🧬 Biology Quiz' };
@@ -1039,7 +1016,7 @@
   function tick() {
     timeLeft -= 0.1;
     if (timeLeft <= 0) { timeLeft = 0; endGame(); }
-    const totalDur = diff === 'calculus' ? CALC_DURATION : DURATION;
+    const totalDur = diff === 'calculus' ? CALC_DURATION : subject === 'biology' ? BIO_DURATION : DURATION;
     const pct = Math.min((timeLeft / totalDur) * 100, 100);
     const bar = document.getElementById('timerBar');
     bar.style.width = pct + '%';
