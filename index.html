@@ -293,12 +293,13 @@
 
 <!-- Start overlay -->
 <div class="overlay" id="startOverlay">
-  <h2>⚡ Mental Math</h2>
+  <h2 id="overlayTitle">⚡ Mental Math</h2>
   <p>30 seconds. Score as many as you can.</p>
 
   <p style="font-size:0.75rem;color:#64748b;margin-bottom:4px;">SUBJECT</p>
   <div class="subject-row" style="margin-bottom:12px">
     <button class="subj-btn active" data-s="math" onclick="setSubject(this)">🔢 Math</button>
+    <button class="subj-btn" data-s="history" onclick="setSubject(this)">📜 History</button>
     <button class="subj-btn" data-s="chemistry" onclick="setSubject(this)">⚗️ Chemistry</button>
     <button class="subj-btn" data-s="biology" onclick="setSubject(this)">🧬 Biology</button>
   </div>
@@ -316,6 +317,16 @@
 
   <div id="chemOptions" style="display:none">
     <p style="font-size:0.8rem;color:#86efac">Stoichiometry, molar mass &amp; balancing — 30 seconds</p>
+  </div>
+
+  <div id="historyOptions" style="display:none">
+    <div class="diff-row" style="margin:0">
+      <button class="diff-btn hist-diff" data-d="easy"     onclick="setDiff(this)">🎨 Renaissance</button>
+      <button class="diff-btn hist-diff active" data-d="medium"   onclick="setDiff(this)">🇺🇸 US History</button>
+      <button class="diff-btn hist-diff" data-d="hard"     onclick="setDiff(this)">⚔️ Medieval Europe</button>
+      <button class="diff-btn hist-diff" data-d="calculus" onclick="setDiff(this)">🌍 20th Century</button>
+    </div>
+    <p style="font-size:0.75rem;color:#94a3b8;margin-top:6px" id="histSectionHint">Answer with a year or number</p>
   </div>
 
   <div id="bioOptions" style="display:none">
@@ -342,6 +353,7 @@
   let timerInterval = null;
   let currentAnswer = null;   // number or [x1,x2] for quadratics
   let currentType = 'single'; // 'single' or 'quadratic'
+  let currentHistoryRange = 0; // tolerance for history year answers
   let diff = 'medium';
   let activeOps = ['+', '−', '×', '÷'];
   let running = false;
@@ -385,9 +397,24 @@
     document.querySelectorAll('.subj-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.s === subject);
     });
-    document.getElementById('mathOptions').style.display = subject === 'math' ? '' : 'none';
-    document.getElementById('chemOptions').style.display = subject === 'chemistry' ? '' : 'none';
-    document.getElementById('bioOptions').style.display = subject === 'biology' ? '' : 'none';
+    document.getElementById('mathOptions').style.display    = subject === 'math'      ? '' : 'none';
+    document.getElementById('chemOptions').style.display    = subject === 'chemistry'  ? '' : 'none';
+    document.getElementById('bioOptions').style.display     = subject === 'biology'    ? '' : 'none';
+    document.getElementById('historyOptions').style.display = subject === 'history'    ? '' : 'none';
+
+    // When switching to history, default diff to medium (US History) and sync buttons
+    if (subject === 'history') {
+      diff = 'medium';
+      document.querySelectorAll('.hist-diff').forEach(b => {
+        b.classList.toggle('active', b.dataset.d === diff);
+      });
+    }
+
+    // Update page title/subtitle
+    const titles = { math: '⚡ Mental Math', history: '📜 History Quiz', chemistry: '⚗️ Chemistry', biology: '🧬 Biology' };
+    document.querySelector('h1').textContent = titles[subject] || '⚡ Quiz';
+    const ol = document.getElementById('overlayTitle');
+    if (ol) ol.textContent = titles[subject] || '⚡ Quiz';
   }
 
   // ── CHEMISTRY QUESTIONS ────────────────────────────────────────────────────
@@ -573,10 +600,101 @@
     }
   }
 
+  // ── HISTORY QUESTIONS ─────────────────────────────────────────────────────
+  // diff → section: easy=Renaissance, medium=US History, hard=Medieval Europe, calculus=20th Century
+  const historyQs = {
+    easy: [ // Renaissance
+      { q: 'In what year did Leonardo da Vinci paint the Mona Lisa? (~)', a: 1503, range: 10 },
+      { q: 'Gutenberg\'s printing press was invented around what year?', a: 1440, range: 10 },
+      { q: 'Michelangelo finished the Sistine Chapel ceiling in what year?', a: 1512, range: 5 },
+      { q: 'In what year did Columbus first reach the Americas?', a: 1492, range: 0 },
+      { q: 'Martin Luther posted his 95 Theses in what year?', a: 1517, range: 0 },
+      { q: 'Shakespeare was born in what year?', a: 1564, range: 2 },
+      { q: 'Copernicus published his heliocentric model in what year?', a: 1543, range: 5 },
+      { q: 'The Renaissance began in what century? (e.g. 14 for 1300s)', a: 14, range: 0 },
+      { q: 'Henry VIII became King of England in what year?', a: 1509, range: 2 },
+      { q: 'Machiavelli wrote The Prince around what year?', a: 1513, range: 5 },
+      { q: 'The Council of Trent began in what year?', a: 1545, range: 5 },
+      { q: 'Raphael died in what year?', a: 1520, range: 3 },
+      { q: 'Galileo was born in what year?', a: 1564, range: 2 },
+      { q: 'How many books did Gutenberg\'s first Bible have? (2 volumes)', a: 2, range: 0 },
+      { q: 'The Medici family rose to power in Florence in what century? (e.g. 15)', a: 15, range: 0 },
+    ],
+    medium: [ // US History
+      { q: 'In what year was the Declaration of Independence signed?', a: 1776, range: 0 },
+      { q: 'In what year did the US Civil War end?', a: 1865, range: 0 },
+      { q: 'In what year did the US enter World War I?', a: 1917, range: 0 },
+      { q: 'In what year was the US Constitution ratified?', a: 1788, range: 1 },
+      { q: 'In what year did the stock market crash (Great Depression start)?', a: 1929, range: 0 },
+      { q: 'How many original US colonies were there?', a: 13, range: 0 },
+      { q: 'In what year did the US enter World War II?', a: 1941, range: 0 },
+      { q: 'In what year was Abraham Lincoln assassinated?', a: 1865, range: 0 },
+      { q: 'The Louisiana Purchase was signed in what year?', a: 1803, range: 1 },
+      { q: 'In what year did the Civil War begin?', a: 1861, range: 0 },
+      { q: 'How many amendments does the Bill of Rights have?', a: 10, range: 0 },
+      { q: 'In what year did the US land on the Moon?', a: 1969, range: 0 },
+      { q: 'In what year was the Emancipation Proclamation issued?', a: 1863, range: 0 },
+      { q: 'How many US states are there?', a: 50, range: 0 },
+      { q: 'In what year did the Korean War end?', a: 1953, range: 1 },
+      { q: 'George Washington became president in what year?', a: 1789, range: 0 },
+      { q: 'In what year did the Vietnam War end for the US?', a: 1975, range: 1 },
+    ],
+    hard: [ // Medieval Europe
+      { q: 'In what year did the Western Roman Empire fall?', a: 476, range: 0 },
+      { q: 'The First Crusade began in what year?', a: 1096, range: 2 },
+      { q: 'In what year was Magna Carta signed?', a: 1215, range: 0 },
+      { q: 'The Black Death reached Europe in what year?', a: 1347, range: 3 },
+      { q: 'The Battle of Hastings was fought in what year?', a: 1066, range: 0 },
+      { q: 'Charlemagne was crowned Holy Roman Emperor in what year?', a: 800, range: 0 },
+      { q: 'The Hundred Years\' War began in what year?', a: 1337, range: 3 },
+      { q: 'Joan of Arc was executed in what year?', a: 1431, range: 2 },
+      { q: 'The Fourth Crusade sacked Constantinople in what year?', a: 1204, range: 2 },
+      { q: 'The Great Schism (East-West) occurred in what year?', a: 1054, range: 5 },
+      { q: 'How many Children\'s Crusades were there?', a: 1, range: 0 },
+      { q: 'The Domesday Book was compiled in what year?', a: 1086, range: 2 },
+      { q: 'The Black Death killed roughly what % of Europe\'s population? (approx)', a: 33, range: 10 },
+      { q: 'The feudal system began to decline after what century? (e.g. 14)', a: 14, range: 1 },
+      { q: 'The Battle of Tours/Poitiers stopping Muslim expansion was in what year?', a: 732, range: 5 },
+    ],
+    calculus: [ // 20th Century Events (reused difficulty slot)
+      { q: 'In what year did World War I begin?', a: 1914, range: 0 },
+      { q: 'In what year did World War II end?', a: 1945, range: 0 },
+      { q: 'In what year did the Berlin Wall fall?', a: 1989, range: 0 },
+      { q: 'In what year did the Soviet Union dissolve?', a: 1991, range: 0 },
+      { q: 'In what year did the US drop atomic bombs on Japan?', a: 1945, range: 0 },
+      { q: 'The first Moon landing was in what year?', a: 1969, range: 0 },
+      { q: 'The Cuban Missile Crisis occurred in what year?', a: 1962, range: 0 },
+      { q: 'In what year did Mao Zedong found the People\'s Republic of China?', a: 1949, range: 0 },
+      { q: 'Nelson Mandela became president of South Africa in what year?', a: 1994, range: 0 },
+      { q: 'In what year did the Titanic sink?', a: 1912, range: 0 },
+      { q: 'The Great Leap Forward began in what year?', a: 1958, range: 2 },
+      { q: 'In what year was the United Nations founded?', a: 1945, range: 0 },
+      { q: 'The Korean War began in what year?', a: 1950, range: 0 },
+      { q: 'How many years did World War II last? (1939-1945)', a: 6, range: 0 },
+      { q: 'In what year did India gain independence from Britain?', a: 1947, range: 0 },
+      { q: 'The Space Shuttle first launched in what year?', a: 1981, range: 1 },
+    ],
+  };
+
+  function generateHistory() {
+    showSingle();
+    document.getElementById('hint').textContent = '';
+    const pool = historyQs[diff] || historyQs.medium;
+    const q = pool[Math.floor(Math.random() * pool.length)];
+    currentAnswer = q.a;
+    // Store tolerance for near-miss checking
+    currentHistoryRange = q.range || 0;
+    document.getElementById('question').textContent = q.q;
+    if (q.range > 0) {
+      document.getElementById('hint').textContent = `Within ${q.range} year${q.range > 1 ? 's' : ''} is accepted`;
+    }
+  }
+
   function generate() {
     document.getElementById('hint').textContent = '';
     if (subject === 'chemistry') { generateChemistry(); return; }
     if (subject === 'biology')   { generateBiology();   return; }
+    if (subject === 'history')   { generateHistory();   return; }
 
     if (diff === 'calculus') {
       showSingle();
@@ -836,7 +954,11 @@
     } else {
       const val = parseInt(document.getElementById('answer').value, 10);
       if (isNaN(val)) return;
-      correct = val === currentAnswer;
+      if (subject === 'history' && currentHistoryRange > 0) {
+        correct = Math.abs(val - currentAnswer) <= currentHistoryRange;
+      } else {
+        correct = val === currentAnswer;
+      }
     }
 
     if (correct) {
@@ -854,6 +976,8 @@
     } else {
       if (currentType === 'quadratic') {
         fb.textContent = `✗ Roots: ${currentAnswer[0]} and ${currentAnswer[1]}`;
+      } else if (subject === 'history') {
+        fb.textContent = `✗ ${currentAnswer}`;
       } else {
         fb.textContent = `✗ ${currentAnswer}`;
       }
@@ -937,7 +1061,7 @@
   function showStart() {
     document.getElementById('endOverlay').style.display = 'none';
     document.getElementById('startOverlay').style.display = 'flex';
-    // Sync the start overlay's diff buttons to the current diff
+    // Sync all diff buttons to the current diff
     document.querySelectorAll('.diff-btn').forEach(b => {
       if (b.dataset.d === diff) b.classList.add('active');
       else b.classList.remove('active');
@@ -946,22 +1070,23 @@
 
   function setDiff(btn) {
     diff = btn.dataset.d;
+    // Sync all diff buttons (math and history sets)
     document.querySelectorAll('.diff-btn').forEach(b => {
       if (b.dataset.d === diff) b.classList.add('active');
       else b.classList.remove('active');
     });
     const note = document.getElementById('hardNote');
-    if (diff === 'hard') {
+    if (diff === 'hard' && subject === 'math') {
       note.textContent = '🔥 Hard: exponents, roots, algebra, quadratics & systems';
-    } else if (diff === 'calculus') {
+    } else if (diff === 'calculus' && subject === 'math') {
       note.textContent = '∫ Calculus: derivatives, integrals & limits — 5 minute timer';
     } else {
       note.textContent = '';
     }
     const startHint = document.getElementById('hardHint');
-    const calcHint = document.getElementById('calcHint');
-    if (startHint) startHint.style.display = diff === 'hard' ? '' : 'none';
-    if (calcHint) calcHint.style.display = diff === 'calculus' ? '' : 'none';
+    const calcHint  = document.getElementById('calcHint');
+    if (startHint) startHint.style.display = (diff === 'hard'     && subject === 'math') ? '' : 'none';
+    if (calcHint)  calcHint.style.display  = (diff === 'calculus' && subject === 'math') ? '' : 'none';
   }
 
   function toggleOp(btn) {
