@@ -238,13 +238,6 @@
     <span>Best<strong id="best">0</strong></span>
   </div>
 
-  <div class="diff-row">
-    <button class="diff-btn" data-d="easy" onclick="setDiff(this)">Easy</button>
-    <button class="diff-btn active" data-d="medium" onclick="setDiff(this)">Medium</button>
-    <button class="diff-btn" data-d="hard" onclick="setDiff(this)">Hard</button>
-    <button class="diff-btn" data-d="calculus" onclick="setDiff(this)">Calculus ∫</button>
-  </div>
-
   <div class="op-row" id="opRow">
     <button class="op-btn active" data-op="+" onclick="toggleOp(this)">+</button>
     <button class="op-btn active" data-op="−" onclick="toggleOp(this)">−</button>
@@ -300,7 +293,7 @@
   <p>Your score</p>
   <div class="big" id="finalScore">0</div>
   <p id="finalStreak"></p>
-  <button class="start-btn" onclick="startGame()">Play Again</button>
+  <button class="start-btn" onclick="showStart()">Play Again</button>
 </div>
 
 <script>
@@ -702,6 +695,16 @@
     const s = document.getElementById('finalStreak');
     s.textContent = best > 1 ? `Best streak: ${best} 🔥` : '';
     document.getElementById('endOverlay').style.display = 'flex';
+  }
+
+  function showStart() {
+    document.getElementById('endOverlay').style.display = 'none';
+    document.getElementById('startOverlay').style.display = 'flex';
+    // Sync the start overlay's diff buttons to the current diff
+    document.querySelectorAll('.diff-btn').forEach(b => {
+      if (b.dataset.d === diff) b.classList.add('active');
+      else b.classList.remove('active');
+    });
   }
 
   function setDiff(btn) {
